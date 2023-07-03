@@ -1,4 +1,4 @@
-GET http://localhost:3001/todos/?category=HOME
+GET http://localhost:3001/todos/?search_q=Submit
 ###
 
 GET http://localhost:3001/todos/5/
@@ -13,7 +13,7 @@ POST http://localhost:3001/todos/
 Content-Type: application/json
 
 {
- "id": 6,
+ "id": 20,
  "todo": "Finalize event theme",
  "priority": "LOW",
  "status": "TO DO",
@@ -26,9 +26,8 @@ Content-Type: application/json
 PUT http://localhost:3001/todos/5/
 Content-Type: application/json
 
-{ "dueDate": "2021-01-12" }
-
+{ "status": "DONE" }
 ###
 
 
-DELETE  http://localhost:3001/todos/2/
+DELETE  http://localhost:3001/todos/20/

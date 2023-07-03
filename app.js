@@ -63,6 +63,8 @@ const logger = (request, response, next) => {
         response.send("Invalid Todo Category");
       }
       break;
+    default:
+      next();
   }
 };
 
@@ -106,7 +108,7 @@ const hasCategoryProperty = (requestQuery) => {
 
 //API  1 pending
 app.get("/todos/", logger, async (request, response) => {
-  //console.log(request.query);
+  console.log(request.query);
   const { search_q = "", priority, status, category } = request.query;
   const requestQuery = request.query;
   let getListOfTodosQuery = "";
@@ -172,24 +174,56 @@ app.get("/agenda/", async (request, response) => {
   //console.log(request.query);
   const parameters = request.query;
   const { date } = parameters;
+  const validate = Date.parse(date);
 
-  const formattedDate = fns.format(new Date(date), "yyyy-MM-dd");
-  const getListOfTodos = `
-  SELECT 
-  id, todo, priority, status, category, due_date AS dueDate
-  FROM todo WHERE due_date = '${formattedDate}';
-  `;
-  const data = await db.all(getListOfTodos);
-  response.send(data);
+  if (isNaN(validate)) {
+    response.status(400);
+    response.send("Invalid Due Date");
+  } else {
+    const formattedDate = fns.format(new Date(date), "yyyy-MM-dd");
+    const getListOfTodos = `
+        SELECT 
+        id, todo, priority, status, category, due_date AS dueDate
+        FROM todo WHERE due_date = '${formattedDate}';
+        `;
+
+    const data = await db.all(getListOfTodos);
+    response.send(data);
+  }
 });
 
-// API 4
+// API 4 POST
 app.post("/todos/", async (request, response) => {
   const todoDetails = request.body;
   const { id, todo, priority, status, category, dueDate } = todoDetails;
   //console.log(todoDetails);
 
-  const addTodoQuery = `INSERT INTO todo
+  const statusValues = ["TO DO", "IN PROGRESS", "DONE"];
+  if (!statusValues.includes(todoDetails.status)) {
+    response.status(400);
+    response.send("Invalid Todo Status");
+  }
+  const priorityValues = ["HIGH", "MEDIUM", "LOW"];
+  if (!priorityValues.includes(todoDetails.priority)) {
+    response.status(400);
+    response.send("Invalid Todo Priority");
+  }
+  const categoryValues = ["WORK", "HOME", "LEARNING"];
+  if (!categoryValues.includes(todoDetails.category)) {
+    response.status(400);
+    response.send("Invalid Todo Category");
+  }
+  const validate = Date.parse(todoDetails.dueDate);
+
+  if (isNaN(validate)) {
+    response.status(400);
+    response.send("Invalid Due Date");
+  } else {
+    const formattedDate = fns.format(
+      new Date(todoDetails.dueDate),
+      "yyyy-MM-dd"
+    );
+    const addTodoQuery = `INSERT INTO todo
      (id, todo, priority, status, category, due_date)
      VALUES (
          '${id}',
@@ -197,57 +231,96 @@ app.post("/todos/", async (request, response) => {
          '${priority}',
          '${status}',
          '${category}',
-         '${dueDate}'
+         '${formattedDate}'
 
      ) ;`;
-  await db.run(addTodoQuery);
-  response.send("Todo Successfully Added");
+    await db.run(addTodoQuery);
+    response.send("Todo Successfully Added");
+  }
 });
 
-//API 5 pending
+//API 5 pending PUT
 app.put("/todos/:todoId/", async (request, response) => {
   const requestBody = request.body;
   const { todoId } = request.params;
-  console.log(requestBody);
+
   let updateColumn = "";
   let updateQuery = "";
+
   switch (true) {
     case requestBody.status !== undefined:
-      updateColumn = "Status";
-      updateQuery = `UPDATE todo SET status = '${requestBody.status}'
+      updateColumn = "Status ";
+      const statusValues = ["TO DO", "IN PROGRESS", "DONE"];
+
+      if (statusValues.includes(requestBody.status)) {
+        console.log(requestBody);
+        updateQuery = `UPDATE todo SET status = '${requestBody.status}'
           WHERE id = ${todoId};`;
+      } else {
+        response.status(400);
+        response.send("Invalid Todo Status");
+      }
+
       break;
+
     case requestBody.priority !== undefined:
-      updateColumn = "Priority";
-      updateQuery = `UPDATE todo SET priority = '${requestBody.priority}'
+      updateColumn = "Priority ";
+      const priorityValues = ["HIGH", "MEDIUM", "LOW"];
+      if (priorityValues.includes(requestBody.priority)) {
+        updateQuery = `UPDATE todo SET priority = '${requestBody.priority}'
           WHERE id = ${todoId};`;
+      } else {
+        response.status(400);
+        response.send("Invalid Todo Priority");
+      }
+
       break;
+
     case requestBody.todo !== undefined:
-      updateColumn = "Todo";
+      updateColumn = "Todo ";
       updateQuery = `UPDATE todo SET todo = '${requestBody.todo}'
           WHERE id = ${todoId};`;
+
       break;
+
     case requestBody.category !== undefined:
-      updateColumn = "Category";
-      updateQuery = `UPDATE todo SET category = '${requestBody.category}'
+      updateColumn = "Category ";
+
+      const categoryValues = ["WORK", "HOME", "LEARNING"];
+      if (categoryValues.includes(requestBody.category)) {
+        updateQuery = `UPDATE todo SET category = '${requestBody.category}'
           WHERE id = ${todoId};`;
+      } else {
+        response.status(400);
+        response.send("Invalid Todo Category");
+      }
+
       break;
+
     case requestBody.dueDate !== undefined:
       updateColumn = "Due Date";
-      const formattedDate = fns.format(
-        new Date(requestBody.dueDate),
-        "yyyy-MM-dd"
-      );
+      const validate = Date.parse(requestBody.dueDate);
 
-      updateQuery = `UPDATE todo SET due_date = '${formattedDate}'
+      if (isNaN(validate)) {
+        response.status(400);
+        response.send("Invalid Due Date");
+      } else {
+        const formattedDate = fns.format(
+          new Date(requestBody.dueDate),
+          "yyyy-MM-dd"
+        );
+        updateQuery = `UPDATE todo SET due_date = '${formattedDate}'
           WHERE id = ${todoId};`;
+      }
       break;
   }
-  await db.run(updateQuery);
-  response.send(`${updateColumn} Updated`);
+  if (updateQuery !== "") {
+    await db.run(updateQuery);
+    response.send(`${updateColumn} Updated`);
+  }
 });
 
-//API 6
+//API 6 DELETE
 app.delete("/todos/:todoId/", async (request, response) => {
   const { todoId } = request.params;
   const deleteTodoQuery = `DELETE FROM todo
