@@ -1,7 +1,7 @@
 GET http://localhost:3001/todos/?search_q=Submit
 ###
 
-GET http://localhost:3001/todos/5/
+GET http://localhost:3001/todos/24/
 ###
 
 
@@ -13,7 +13,7 @@ POST http://localhost:3001/todos/
 Content-Type: application/json
 
 {
- "id": 20,
+ "id": 24,
  "todo": "Finalize event theme",
  "priority": "LOW",
  "status": "TO DO",
@@ -26,7 +26,7 @@ Content-Type: application/json
 PUT http://localhost:3001/todos/5/
 Content-Type: application/json
 
-{ "status": "DONE" }
+{ "status": "DONkE" }
 ###
 
 
